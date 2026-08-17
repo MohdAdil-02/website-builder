@@ -18,7 +18,7 @@ A full-stack AI-powered code generation platform that transforms natural languag
 > *Describe a component in plain English → get production-ready React code → see it rendered live, instantly.*
 
 <!-- Replace with an actual screenshot or GIF once available -->
-`[![AI Code Generator Demo](/frontend/public/Ss.png)]`
+![AI Code Generator Demo](/Assest/Ss.png)
 
 ---
 

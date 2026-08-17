@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const generateCode = async (prompt, type) => {
   const controller = new AbortController();
@@ -23,12 +23,12 @@ export const generateCode = async (prompt, type) => {
     return data;
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     if (error.name === 'AbortError') {
       throw new Error('Request timed out. Please try a simpler prompt.', { cause: error });
     }
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Cannot connect to server. Make sure backend is running on port 3001.', { cause: error });
+      throw new Error('Cannot connect to server. Please check your connection.', { cause: error });
     }
     throw error;
   }

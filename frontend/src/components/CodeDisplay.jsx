@@ -1,44 +1,69 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { FiCopy, FiCheck, FiCode, FiEye } from 'react-icons/fi';
+import { FiCheck, FiCode, FiCopy, FiEye, FiFileText } from 'react-icons/fi';
 
-const LivePreview = ({ code }) => {
-  const cleanCode = code
+const typeLabels = {
+  frontend: 'React frontend',
+  backend: 'Express backend',
+  fullstack: 'Full-stack bundle',
+  api: 'API handler',
+};
+
+const stripCodeFences = (value) =>
+  value
     .replace(/```jsx?/g, '')
+    .replace(/```javascript/g, '')
+    .replace(/```js/g, '')
     .replace(/```/g, '')
     .trim();
 
-  const componentMatch = cleanCode.match(/function\s+(\w+)\s*\(/);
-  const componentName = componentMatch ? componentMatch[1] : 'App';
+const getLanguage = (type) => {
+  switch (type) {
+    case 'frontend':
+      return 'jsx';
+    case 'backend':
+    case 'fullstack':
+    case 'api':
+      return 'javascript';
+    default:
+      return 'javascript';
+  }
+};
+
+const LivePreview = ({ code }) => {
+  const cleanCode = useMemo(() => stripCodeFences(code), [code]);
+  const componentName = cleanCode.match(/function\s+(\w+)\s*\(/)?.[1] || 'App';
 
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
       <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
       <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
       <script src="https://cdn.tailwindcss.com"></script>
       <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          padding: 24px;
-          background: #ffffff;
-          color: #1a1a1a;
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          min-height: 100vh;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          background: #f8fafc;
+          color: #0f172a;
         }
+        #root { min-height: 100vh; }
         #error-message {
           display: none;
+          margin: 16px;
           padding: 16px;
-          background: #fef2f2;
           border: 1px solid #fecaca;
           border-radius: 8px;
-          color: #dc2626;
-          margin: 16px;
-          font-family: monospace;
-          font-size: 14px;
+          background: #fef2f2;
+          color: #b91c1c;
+          font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
           white-space: pre-wrap;
         }
       </style>
@@ -46,12 +71,12 @@ const LivePreview = ({ code }) => {
     <body>
       <div id="root"></div>
       <div id="error-message"></div>
-      
+
       <script type="text/babel">
-        window.onerror = function(msg, url, line, col, error) {
+        window.onerror = function(msg, url, line) {
           var errorDiv = document.getElementById('error-message');
           errorDiv.style.display = 'block';
-          errorDiv.textContent = 'Error: ' + msg + '\\nAt line: ' + line;
+          errorDiv.textContent = 'Preview error: ' + msg + '\\nLine: ' + line;
           return true;
         };
 
@@ -63,39 +88,22 @@ const LivePreview = ({ code }) => {
           var useReducer = React.useReducer;
           var useCallback = React.useCallback;
           var useMemo = React.useMemo;
-          
+
           ${cleanCode}
-          
-          var ComponentToRender = typeof ${componentName} !== 'undefined' 
-            ? ${componentName} 
-            : null;
-          
+
+          var ComponentToRender = typeof ${componentName} !== 'undefined' ? ${componentName} : null;
+
           if (ComponentToRender) {
-            var root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(React.createElement(ComponentToRender));
+            ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ComponentToRender));
           } else {
-            var allKeys = Object.keys(window);
-            var found = null;
-            for (var i = 0; i < allKeys.length; i++) {
-              var k = allKeys[i];
-              if (k[0] === k[0].toUpperCase() && typeof window[k] === 'function' && k !== 'Function' && k !== 'Object') {
-                found = window[k];
-                break;
-              }
-            }
-            if (found) {
-              var root2 = ReactDOM.createRoot(document.getElementById('root'));
-              root2.render(React.createElement(found));
-            } else {
-              var errorDiv2 = document.getElementById('error-message');
-              errorDiv2.style.display = 'block';
-              errorDiv2.textContent = 'No component found. Make sure your code defines a function component.';
-            }
+            var errorDiv = document.getElementById('error-message');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'No named React component was found in the generated code.';
           }
         } catch (error) {
-          var errorDiv3 = document.getElementById('error-message');
-          errorDiv3.style.display = 'block';
-          errorDiv3.textContent = 'Error: ' + error.message;
+          var errorDiv = document.getElementById('error-message');
+          errorDiv.style.display = 'block';
+          errorDiv.textContent = 'Preview error: ' + error.message;
         }
       </script>
     </body>
@@ -105,108 +113,116 @@ const LivePreview = ({ code }) => {
   return (
     <iframe
       srcDoc={htmlContent}
-      className="w-full h-[600px] bg-white border-0"
+      className="h-[640px] w-full border-0 bg-white"
       sandbox="allow-scripts"
-      title="Live Preview"
+      title="Generated React preview"
     />
   );
 };
 
 const CodeDisplay = ({ code, type }) => {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState('');
   const [viewMode, setViewMode] = useState('code');
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const lineCount = useMemo(() => code.split('\n').length, [code]);
+  const canPreview = type === 'frontend';
 
-  const getLanguage = () => {
-    switch (type) {
-      case 'frontend': return 'jsx';
-      case 'backend': return 'javascript';
-      case 'fullstack': return 'javascript';
-      case 'api': return 'javascript';
-      default: return 'javascript';
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setCopyError('');
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError('Clipboard permission was blocked. Select the code manually.');
+      setCopied(false);
     }
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900/50">
-        <div className="flex items-center gap-2">
-          {type === 'frontend' && (
-            <div className="flex bg-gray-800 rounded-lg p-0.5">
+    <div className="overflow-hidden rounded-lg border border-white/10 bg-slate-900 shadow-2xl shadow-slate-950/30">
+      <div className="flex flex-col gap-4 border-b border-white/10 bg-slate-950/60 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
+              <FiFileText aria-hidden="true" />
+              {typeLabels[type] || 'Generated code'}
+            </span>
+            <span className="text-xs text-slate-500">{lineCount} lines</span>
+          </div>
+          {copyError && <p className="mt-2 text-xs text-amber-200">{copyError}</p>}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {canPreview && (
+            <div className="grid grid-cols-2 rounded-lg border border-white/10 bg-slate-950 p-1">
               <button
+                type="button"
                 onClick={() => setViewMode('code')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                  ${viewMode === 'code' 
-                    ? 'bg-gray-700 text-white shadow-sm' 
-                    : 'text-gray-400 hover:text-gray-300'}`}
+                className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition ${
+                  viewMode === 'code' ? 'bg-white text-slate-950' : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <FiCode className="text-sm" />
+                <FiCode aria-hidden="true" />
                 Code
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('preview')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                  ${viewMode === 'preview' 
-                    ? 'bg-gray-700 text-white shadow-sm' 
-                    : 'text-gray-400 hover:text-gray-300'}`}
+                className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition ${
+                  viewMode === 'preview' ? 'bg-white text-slate-950' : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <FiEye className="text-sm" />
+                <FiEye aria-hidden="true" />
                 Preview
               </button>
             </div>
           )}
-          <span className="text-xs text-gray-500 font-mono">
-            {type?.toUpperCase()}
-          </span>
-        </div>
 
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
-                     text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 
-                     rounded-lg transition-all"
-        >
-          {copied ? (
-            <>
-              <FiCheck className="text-green-400" />
-              <span className="text-green-400">Copied!</span>
-            </>
-          ) : (
-            <>
-              <FiCopy />
-              Copy Code
-            </>
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            {copied ? (
+              <>
+                <FiCheck className="text-emerald-300" aria-hidden="true" />
+                Copied
+              </>
+            ) : (
+              <>
+                <FiCopy aria-hidden="true" />
+                Copy
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {type === 'frontend' && viewMode === 'preview' ? (
+      {canPreview && viewMode === 'preview' ? (
         <LivePreview code={code} />
       ) : (
-        <div className="overflow-auto max-h-[600px]">
+        <div className="max-h-[640px] overflow-auto">
           <SyntaxHighlighter
-            language={getLanguage()}
+            language={getLanguage(type)}
             style={oneDark}
             customStyle={{
               margin: 0,
-              padding: '1.5rem',
+              padding: '1.25rem',
               background: 'transparent',
-              fontSize: '14px',
-              lineHeight: '1.6',
+              fontSize: '13px',
+              lineHeight: '1.65',
             }}
             showLineNumbers
             lineNumberStyle={{
-              color: '#4B5563',
+              color: '#64748b',
               minWidth: '2.5em',
               paddingRight: '1em',
               textAlign: 'right',
               userSelect: 'none',
             }}
+            wrapLongLines
           >
             {code}
           </SyntaxHighlighter>

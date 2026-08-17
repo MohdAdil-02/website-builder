@@ -25,10 +25,10 @@ export const generateCode = async (prompt, type) => {
     clearTimeout(timeoutId);
     
     if (error.name === 'AbortError') {
-      throw new Error('Request timed out. Please try a simpler prompt.');
+      throw new Error('Request timed out. Please try a simpler prompt.', { cause: error });
     }
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Cannot connect to server. Make sure backend is running on port 3001.');
+      throw new Error('Cannot connect to server. Make sure backend is running on port 3001.', { cause: error });
     }
     throw error;
   }

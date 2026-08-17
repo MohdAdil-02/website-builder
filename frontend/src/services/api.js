@@ -1,11 +1,11 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const generateCode = async (prompt, type) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 35000);
 
   try {
-    const response = await fetch(`${API_BASE_URL}/generate`, {
+    const response = await fetch(`${BASE_URL}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, type }),
@@ -36,7 +36,7 @@ export const generateCode = async (prompt, type) => {
 
 export const checkHealth = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${BASE_URL}/health`);
     const data = await response.json();
     return data.status === 'OK';
   } catch {
